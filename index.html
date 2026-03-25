@@ -3,200 +3,478 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Physics Engine - Tahap 2 (Patched)</title>
+    <title>GerakLab - Simulasi Fisika SMP</title>
     <style>
+        /* ==========================================
+           1. STYLING UTAMA
+           ========================================== */
         body {
-            font-family: sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-top: 40px;
-            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
         }
-        canvas {
-            background-color: white;
-            border: 2px solid #333;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .controls {
+
+        .header { text-align: center; margin-bottom: 15px; }
+        .header h1 { margin: 0; color: #0056b3; }
+        .header p { margin: 5px 0 0 0; color: #555; }
+
+        /* ==========================================
+           2. UI TABS & MATERI (BARU)
+           ========================================== */
+        .main-tabs {
             display: flex;
             gap: 15px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
-        button {
-            padding: 10px 20px;
+
+        .main-tab-btn {
+            padding: 12px 30px;
             font-size: 16px;
             font-weight: bold;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            background-color: #f0f4f8;
+            color: #555;
             cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .main-tab-btn:hover { background-color: #e1e8ed; }
+        .main-tab-btn.active {
+            background-color: #e1f5fe;
+            border-color: #03a9f4;
+            color: #0277bd;
+        }
+
+        .materi-panel {
+            display: none; /* Disembunyikan secara default */
+            width: 800px;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .materi-panel h2 { color: #0277bd; border-bottom: 2px solid #e1f5fe; padding-bottom: 10px; margin-top: 0; }
+        .materi-panel h3 { color: #0056b3; margin-top: 25px; }
+        .materi-panel ul { padding-left: 20px; }
+        .materi-panel li { margin-bottom: 10px; }
+        .highlight { font-weight: bold; color: #d32f2f; }
+
+        /* ==========================================
+           3. UI SIMULASI & DASHBOARD
+           ========================================== */
+        .learning-panel {
+            background-color: #e1f5fe;
+            border-left: 5px solid #03a9f4;
+            padding: 15px 20px;
+            width: 800px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .learning-panel h3 { margin: 0 0 8px 0; color: #0277bd; }
+        .learning-panel ul { margin: 0; padding-left: 20px; color: #01579b; }
+
+        canvas {
+            background-color: #ffffff;
+            border: 2px solid #cfd8dc;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .dashboard {
+            width: 800px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            background-color: #263238;
+            color: #eceff1;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+        .hud-item { text-align: center; font-size: 14px; }
+        .hud-item span { display: block; font-size: 20px; font-weight: bold; margin-top: 5px; color: #4fc3f7; }
+        .hud-item .status-text { color: #69f0ae; } 
+
+        .controls { display: flex; flex-direction: column; gap: 15px; }
+        .sliders { display: flex; justify-content: space-between; gap: 20px; }
+        .slider-group { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+        .slider-group label { font-weight: bold; font-size: 14px; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+
+        .buttons { display: flex; justify-content: center; gap: 15px; margin-top: 10px; }
+        button {
+            padding: 10px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
             border: none;
             border-radius: 5px;
-            background-color: #007bff;
-            color: white;
-            transition: background 0.2s;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
         }
-        button:hover { background-color: #0056b3; }
-        button#stopBtn { background-color: #dc3545; }
-        button#stopBtn:hover { background-color: #a71d2a; }
-        button#resetBtn { background-color: #6c757d; }
-        button#resetBtn:hover { background-color: #5a6268; }
+        button:active { transform: scale(0.95); }
+        button:disabled { background-color: #b0bec5; cursor: not-allowed; }
+        
+        #btnStart { background-color: #4caf50; } 
+        #btnStart:hover { background-color: #43a047; }
+        #btnPause { background-color: #ff9800; } 
+        #btnPause:hover { background-color: #fb8c00; }
+        #btnReset { background-color: #f44336; } 
+        #btnReset:hover { background-color: #e53935; }
     </style>
 </head>
 <body>
 
-    <canvas id="simCanvas" width="800" height="200"></canvas>
+    <div class="header">
+        <h1>GerakLab</h1>
+        <p>Simulasi Interaktif Hukum Newton & Gaya Gesek</p>
+    </div>
 
-    <div class="controls">
-        <button id="startBtn">Start</button>
-        <button id="stopBtn">Stop</button>
-        <button id="resetBtn">Reset</button>
+    <div class="main-tabs">
+        <button class="main-tab-btn active" id="btnTabSimulasi" onclick="switchMainTab('simulasi')">🔬 Simulasi Gerak</button>
+        <button class="main-tab-btn" id="btnTabMateri" onclick="switchMainTab('materi')">📖 Materi Belajar</button>
+    </div>
+
+    <div id="container-materi" class="materi-panel">
+        <h2>Memahami Gerak dan Gaya: Di Balik Layar GerakLab</h2>
+
+        <p>Pernahkah kamu mencoba mendorong lemari penuh buku yang sangat berat, tapi lemarinya tidak bergeser satu sentimeter pun? Atau bertanya-tanya kenapa bola yang menggelinding di lantai keramik yang licin lebih sulit berhenti daripada di atas karpet? Di dunia nyata, ada "aturan main" tak kasat mata yang menentukan apakah suatu benda akan diam atau bergerak. Mari kita bongkar aturan tersebut!</p>
+
+        <h3>1. Gaya Dorong (Force)</h3>
+        <ul>
+            <li><strong>Apa itu?</strong> Gaya adalah tarikan atau dorongan yang kamu berikan pada suatu benda.</li>
+            <li><strong>Analogi:</strong> Tenaga ototmu saat mencoba memindahkan meja belajar.</li>
+            <li><strong>Di Simulasi:</strong> Diwakili oleh slider <strong>Gaya Dorong (F)</strong> dan panah berwarna biru.</li>
+            <li><strong>Eksperimen Mental:</strong> <em>Apa yang terjadi jika gaya dorongmu (F) lebih kecil dari gaya gesek lantai? Apakah benda akan langsung melaju?</em></li>
+        </ul>
+
+        <h3>2. Massa dan Inersia (Mass & Inertia)</h3>
+        <ul>
+            <li><strong>Apa itu?</strong> Massa adalah jumlah isi (materi) dari suatu benda. Inersia adalah sifat benda yang "malas" berubah—kalau dia diam, dia ingin terus diam. Kalau dia bergerak, dia ingin terus bergerak.</li>
+            <li><strong>Analogi:</strong> Lebih gampang mana: mendorong troli kosong atau troli yang penuh berisi batu bata?</li>
+            <li><strong>Di Simulasi:</strong> Diwakili oleh slider <strong>Massa (m)</strong>. Semakin besar angkanya, benda semakin "keras kepala".</li>
+            <li><strong>Eksperimen Mental:</strong> <em>Jika kamu memakai dorongan (F) yang sama, tapi massanya (m) kamu naikkan dari 10 kg menjadi 50 kg, apa yang terjadi pada pergerakannya?</em></li>
+        </ul>
+
+        <h3>3. Gaya Gesek (Friction)</h3>
+        <ul>
+            <li><strong>Apa itu?</strong> Gaya tak kasat mata dari lantai yang selalu <em>melawan</em> arah gerak bendamu.</li>
+            <li><strong>Analogi:</strong> Bermain seluncuran di atas es (gesekan sangat kecil) dibandingkan meluncur di atas aspal jalanan (gesekan sangat besar).</li>
+            <li><strong>Di Simulasi:</strong> Diwakili oleh slider <strong>Koef. Gesek (μ)</strong> dan panah berwarna merah yang menghadap ke belakang.</li>
+            <li><strong>Eksperimen Mental:</strong> <em>Ubah nilai gesekan (μ) menjadi 0 (lantai selicin es). Tarik gaya dorong (F) sesaat agar benda melaju, lalu kembalikan F ke 0. Apakah benda akan pernah berhenti?</em></li>
+        </ul>
+
+        <h3>4. Percepatan dan Kecepatan (Acceleration & Velocity)</h3>
+        <ul>
+            <li><strong>Apa itu?</strong> Kecepatan (v) adalah seberapa kencang benda melaju. Percepatan (a) adalah seberapa cepat kecepatan itu <em>bertambah ngebut</em>.</li>
+            <li><strong>Analogi:</strong> Menginjak pedal gas mobil. Semakin dalam diinjak (Gaya besar), semakin cepat jarum spidometermu naik (Percepatan besar).</li>
+            <li><strong>Di Simulasi:</strong> Lihat layar hitam di atas (HUD). Jika Dorongan (Biru) lebih panjang dari Gesekan (Merah), nilai percepatan (a) akan muncul.</li>
+            <li><strong>Eksperimen Mental:</strong> <em>Hukum Newton berkata percepatan terjadi jika ada sisa gaya. Coba atur agar F dorong tepat sama dengan f gesek. Berapa nilai percepatannya?</em></li>
+        </ul>
+
+        <h3>5. Energi Kinetik (Kinetic Energy)</h3>
+        <ul>
+            <li><strong>Apa itu?</strong> Energi yang dimiliki benda <em>hanya karena dia sedang bergerak</em>. Benda diam = tidak punya energi kinetik.</li>
+            <li><strong>Analogi:</strong> Kelereng yang diam di tanganmu tidak berbahaya. Tapi kelereng yang melesat kencang dari ketapel punya energi perusak yang besar karena Energi Kinetiknya tinggi.</li>
+            <li><strong>Di Simulasi:</strong> Diwakili oleh angka <strong>Energi Kinetik (Ek)</strong> di HUD.</li>
+            <li><strong>Eksperimen Mental:</strong> <em>Saat benda terus melaju semakin cepat (v naik), perhatikan angka Ek. Apakah naiknya santai, atau meloncat naik dengan sangat ganas (eksponensial)?</em></li>
+        </ul>
+
+        <hr style="border: 1px solid #e1f5fe; margin: 25px 0;">
+
+        <h3>🧪 Petunjuk Eksperimen di GerakLab</h3>
+        <p>Jangan hanya dibaca! Pindah ke tab <strong>🔬 Simulasi Gerak</strong> dan coba lakukan tiga misi ini:</p>
+        <ol>
+            <li><strong>Misi Tembus Batas:</strong> Set Massa 10 kg dan Gesekan 0.4. Geser gaya perlahan. Temukan di angka persis berapa (N) benda akhirnya mulai bergerak!</li>
+            <li><strong>Misi Luar Angkasa:</strong> Set Gesekan (μ) ke 0. Beri dorongan 50 N sebentar, lalu kembalikan dorongan ke 0 N. Amati apa yang terjadi pada kecepatan benda di lingkungan tanpa gesekan ini.</li>
+            <li><strong>Misi Uji Beban:</strong> Biarkan benda melaju. Di tengah jalan, geser slider Massa (m) ke angka maksimum. Amati layar percepatan (a)!</li>
+        </ol>
+
+        <div style="background-color: #fff3e0; padding: 15px; border-left: 5px solid #ff9800; border-radius: 4px; margin-top: 20px;">
+            <h4 style="margin-top: 0; color: #e65100;">📌 Ringkasan Inti (Cheat Sheet)</h4>
+            <ul style="margin-bottom: 0; color: #e65100;">
+                <li>Benda butuh didorong <strong>lebih kuat</strong> dari gaya gesek lantai agar bisa mulai bergerak.</li>
+                <li>Semakin berat benda (Massa besar), semakin kecil percepatannya (Hukum Inersia).</li>
+                <li>Gaya Gesek adalah rem alami. Tanpa gesekan, benda yang bergerak tidak akan pernah berhenti.</li>
+                <li>Energi Kinetik tercipta murni dari pergerakan benda.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="container-simulasi" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+        <div class="learning-panel">
+            <h3>💡 Eksplorasi Konsep:</h3>
+            <ul>
+                <li>Atur <strong>Gaya (F)</strong>. Perhatikan bahwa benda tidak akan bergerak jika gaya dorong lebih kecil dari gaya gesek.</li>
+                <li>Saat benda bergerak, coba tambah <strong>Massa (m)</strong>. Apa yang terjadi pada nilai percepatannya?</li>
+                <li>Tekan <strong>Start</strong> untuk memulai, dan <strong>Pause</strong> untuk menjeda waktu.</li>
+            </ul>
+        </div>
+
+        <canvas id="simCanvas" width="800" height="250"></canvas>
+
+        <div class="dashboard">
+            <div class="hud">
+                <div class="hud-item">Status <span id="valStatus" class="status-text">Diam</span></div>
+                <div class="hud-item">Percepatan (a) <span id="valA">0.00 m/s²</span></div>
+                <div class="hud-item">Kecepatan (v) <span id="valV">0.00 m/s</span></div>
+                <div class="hud-item">Energi Kinetik (Ek) <span id="valEk">0.00 J</span></div>
+            </div>
+
+            <div class="controls">
+                <div class="sliders">
+                    <div class="slider-group">
+                        <label>Gaya Dorong (F): <span id="lblF">40</span> N</label>
+                        <input type="range" id="sliderF" min="0" max="150" value="40">
+                    </div>
+                    <div class="slider-group">
+                        <label>Massa (m): <span id="lblM">10</span> kg</label>
+                        <input type="range" id="sliderM" min="1" max="50" value="10">
+                    </div>
+                    <div class="slider-group">
+                        <label>Koef. Gesek (μ): <span id="lblMu">0.3</span></label>
+                        <input type="range" id="sliderMu" min="0" max="1" step="0.05" value="0.3">
+                    </div>
+                </div>
+
+                <div class="buttons">
+                    <button id="btnStart">▶ Start</button>
+                    <button id="btnPause" disabled>⏸ Pause</button>
+                    <button id="btnReset">🔄 Reset Posisi</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         // ==========================================
-        // A. PURE PHYSICS ENGINE
+        // 1. FUNGSI NAVIGASI TAB
         // ==========================================
-        function calculate_physics(m, F, mu, v, x, dt = 0.016) {
-            if (m <= 0) throw new Error("Massa harus lebih besar dari 0");
-            
-            const g = 9.8;
-            const F_friction_max = mu * m * g;
-            
-            let F_friction = 0;
-            if (Math.abs(v) > 0.001) {
-                F_friction = -F_friction_max * (v > 0 ? 1 : -1);
-            } else {
-                F_friction = -F_friction_max * (F > 0 ? 1 : -1);
-            }
+        function switchMainTab(tabName) {
+            const simContainer = document.getElementById('container-simulasi');
+            const matContainer = document.getElementById('container-materi');
+            const btnSim = document.getElementById('btnTabSimulasi');
+            const btnMat = document.getElementById('btnTabMateri');
 
-            let F_net = 0, a = 0;
-            if (Math.abs(F) <= F_friction_max && Math.abs(v) <= 0.01) {
-                F_friction = -F; 
-                F_net = 0.0;
-                a = 0.0;
-                v = 0.0;
+            if (tabName === 'simulasi') {
+                simContainer.style.display = 'flex';
+                matContainer.style.display = 'none';
+                btnSim.classList.add('active');
+                btnMat.classList.remove('active');
             } else {
-                F_net = F + F_friction;
-                a = F_net / m;
-                let v_next = v + a * dt;
-                
-                if (F === 0 && (v * v_next) <= 0) {
-                    v = 0.0;
-                    a = 0.0;
-                } else {
-                    v = v_next;
-                }
+                simContainer.style.display = 'none';
+                matContainer.style.display = 'block';
+                btnSim.classList.remove('active');
+                btnMat.classList.add('active');
             }
-
-            if (Math.abs(v) < 1e-5) v = 0.0;
-            
-            x = x + v * dt;
-            let Ek = 0.5 * m * (v ** 2);
-            
-            return { F_net, F_friction, a, v, x, Ek };
         }
 
         // ==========================================
-        // B. STATE VARIABEL
+        // 2. VARIABEL STATE & FISIKA
         // ==========================================
-        const M_DEFAULT = 10;
-        const F_DEFAULT = 60; 
-        const MU_DEFAULT = 0.3;
-        
-        let m = M_DEFAULT;
-        let F = F_DEFAULT;
-        let mu = MU_DEFAULT;
-        let v = 0;
-        let x = 0; 
-
-        const scale = 50; 
-        const dt = 0.016; 
-        let isRunning = false;
+        let systemState = 'READY'; 
         let animationFrameId = null;
+        let lastTime = 0;
+
+        const GRAVITY = 9.8;
+        let phys = {
+            F: 40, m: 10, mu: 0.3, x: 50, v: 0, a: 0, Ek: 0, f_fric: 0, status: "Diam"
+        };
 
         const canvas = document.getElementById('simCanvas');
         const ctx = canvas.getContext('2d');
-        const ballRadius = 20;
-        const groundY = canvas.height / 2 + ballRadius; 
-        const startX_pixel = 50; 
+        
+        const ui = {
+            lblF: document.getElementById('lblF'), lblM: document.getElementById('lblM'), lblMu: document.getElementById('lblMu'),
+            sliderF: document.getElementById('sliderF'), sliderM: document.getElementById('sliderM'), sliderMu: document.getElementById('sliderMu'),
+            valStatus: document.getElementById('valStatus'), valA: document.getElementById('valA'), valV: document.getElementById('valV'), valEk: document.getElementById('valEk'),
+            btnStart: document.getElementById('btnStart'), btnPause: document.getElementById('btnPause'), btnReset: document.getElementById('btnReset')
+        };
 
         // ==========================================
-        // C. RENDERING LOOP
+        // 3. LOGIKA FISIKA
         // ==========================================
-        function drawScene() {
+        function updatePhysics(dt) {
+            dt = Math.min(dt, 0.05); 
+            let f_max = phys.mu * phys.m * GRAVITY;
+
+            if (Math.abs(phys.v) < 0.0001) {
+                phys.v = 0;
+                if (phys.F <= f_max) {
+                    phys.f_fric = -phys.F; 
+                    phys.a = 0;
+                    phys.status = (phys.F === 0) ? "Diam" : "Ditahan Gesekan";
+                } else {
+                    phys.f_fric = -f_max * Math.sign(phys.F); 
+                    phys.a = (phys.F + phys.f_fric) / phys.m;
+                    phys.status = "Bergerak";
+                }
+            } else {
+                phys.f_fric = -f_max * Math.sign(phys.v);
+                phys.a = (phys.F + phys.f_fric) / phys.m;
+                phys.status = "Bergerak";
+            }
+
+            let nextV = phys.v + (phys.a * dt);
+
+            if (phys.v > 0 && nextV < 0) {
+                phys.v = 0; phys.a = 0;
+            } else if (phys.v < 0 && nextV > 0) {
+                phys.v = 0; phys.a = 0;
+            } else {
+                phys.v = nextV;
+            }
+
+            if (Math.abs(phys.v) < 0.0001) phys.v = 0;
+
+            phys.x += phys.v * dt * 15; 
+            phys.Ek = 0.5 * phys.m * (phys.v ** 2);
+
+            if (phys.x > canvas.width) {
+                phys.x = -50;
+            }
+        }
+
+        // ==========================================
+        // 4. RENDERING VISUAL
+        // ==========================================
+        function drawArrow(fromX, fromY, length, color, label) {
+            if (length === 0) return;
+            
+            let visualLength = length * 1.5; 
+            if (visualLength > 200) visualLength = 200;
+            if (visualLength < -200) visualLength = -200;
+
+            const toX = fromX + visualLength;
+            const headlen = 10;
+            const angle = Math.atan2(0, visualLength);
+
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, fromY);
+            ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), fromY - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.moveTo(toX, fromY);
+            ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), fromY - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.stroke();
+
+            ctx.fillStyle = color; ctx.font = "14px Arial"; ctx.fontWeight = "bold";
+            ctx.fillText(label, toX + (visualLength > 0 ? 5 : -40), fromY - 10);
+        }
+
+        function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Lantai
-            ctx.beginPath();
-            ctx.moveTo(0, groundY);
-            ctx.lineTo(canvas.width, groundY);
-            ctx.strokeStyle = "#555";
-            ctx.lineWidth = 4;
-            ctx.stroke();
+            const groundY = 200;
+            ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY);
+            ctx.strokeStyle = "#90a4ae"; ctx.lineWidth = 4; ctx.stroke();
 
-            // Mapping & Clamping Posisi
-            let screenX = startX_pixel + (x * scale);
+            const boxSize = 50;
+            ctx.fillStyle = (phys.v !== 0) ? "#4caf50" : "#ff9800"; 
+            ctx.fillRect(phys.x, groundY - boxSize, boxSize, boxSize);
+            ctx.strokeStyle = "#333"; ctx.lineWidth = 2; ctx.strokeRect(phys.x, groundY - boxSize, boxSize, boxSize);
+
+            const centerX = phys.x + (boxSize / 2);
+            const centerY = groundY - (boxSize / 2);
+
+            if (phys.F > 0) {
+                drawArrow(centerX + 25, centerY, phys.F, "#2196f3", `F = ${phys.F}N`);
+            }
             
-            // FIX: Batasi agar bola tidak keluar canvas di sisi kanan
-            if (screenX > canvas.width - ballRadius) {
-                screenX = canvas.width - ballRadius;
+            if (phys.f_fric !== 0) {
+                drawArrow(centerX, centerY + 15, phys.f_fric, "#f44336", `f = ${Math.abs(phys.f_fric).toFixed(1)}N`);
             }
 
-            // FIX: Indikator visual saat berhenti
-            let isStopped = (v === 0);
-
-            // Gambar Bola
-            ctx.beginPath();
-            ctx.arc(screenX, groundY - ballRadius, ballRadius, 0, Math.PI * 2);
-            ctx.fillStyle = isStopped ? "#4caf50" : "#ff5722"; // Hijau jika diam, Oranye jika bergerak
-            ctx.fill();
-            ctx.strokeStyle = "#222";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-        }
-
-        function update() {
-            if (!isRunning) return;
-
-            let state = calculate_physics(m, F, mu, v, x, dt);
+            ui.valStatus.textContent = phys.status;
+            ui.valStatus.style.color = (phys.status === "Diam") ? "#ffb74d" : (phys.status === "Bergerak") ? "#69f0ae" : "#fff176";
             
-            v = state.v;
-            x = state.x;
-
-            drawScene();
-
-            animationFrameId = requestAnimationFrame(update);
+            ui.valA.textContent = phys.a.toFixed(2) + " m/s²";
+            ui.valV.textContent = phys.v.toFixed(2) + " m/s";
+            ui.valEk.textContent = phys.Ek.toFixed(2) + " J";
         }
 
         // ==========================================
-        // D. KONTROL BUTTON
+        // 5. GAME LOOP & EVENTS
         // ==========================================
-        document.getElementById('startBtn').addEventListener('click', () => {
-            if (!isRunning) {
-                isRunning = true;
-                update();
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const dt = (timestamp - lastTime) / 1000; 
+            lastTime = timestamp;
+
+            if (systemState === 'RUNNING') {
+                updatePhysics(dt);
             }
-        });
+            render();
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
 
-        document.getElementById('stopBtn').addEventListener('click', () => {
-            // Kita ubah F menjadi 0 saat di-stop untuk mensimulasikan gaya dilepas
-            // Ini memicu gesekan untuk menghentikan bola secara alami
-            F = 0; 
-        });
-
-        document.getElementById('resetBtn').addEventListener('click', () => {
-            isRunning = false;
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        function readSliders() {
+            phys.F = parseFloat(ui.sliderF.value);
+            phys.m = parseFloat(ui.sliderM.value);
+            phys.mu = parseFloat(ui.sliderMu.value);
             
-            m = M_DEFAULT;
-            F = F_DEFAULT;
-            mu = MU_DEFAULT;
-            v = 0;
-            x = 0;
-            
-            drawScene();
+            ui.lblF.textContent = phys.F;
+            ui.lblM.textContent = phys.m;
+            ui.lblMu.textContent = phys.mu.toFixed(2);
+
+            if (systemState !== 'RUNNING') updatePhysics(0); 
+        }
+
+        ui.sliderF.addEventListener('input', readSliders);
+        ui.sliderM.addEventListener('input', readSliders);
+        ui.sliderMu.addEventListener('input', readSliders);
+
+        ui.btnStart.addEventListener('click', () => {
+            systemState = 'RUNNING';
+            ui.btnStart.disabled = true; ui.btnPause.disabled = false;
+            lastTime = performance.now(); 
         });
 
-        drawScene();
+        ui.btnPause.addEventListener('click', () => {
+            systemState = 'PAUSED';
+            ui.btnStart.disabled = false; ui.btnPause.disabled = true;
+        });
+
+        ui.btnReset.addEventListener('click', () => {
+            systemState = 'READY';
+            ui.btnStart.disabled = false; ui.btnPause.disabled = true;
+            
+            phys.x = 50; phys.v = 0; phys.a = 0; phys.Ek = 0;
+            phys.f_fric = 0; phys.status = "Diam"; 
+            
+            updatePhysics(0);
+        });
+
+        readSliders();
+        animationFrameId = requestAnimationFrame(gameLoop);
+
     </script>
 </body>
 </html>
