@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GerakLab - Tahap 6 (State Awareness)</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            background-color: #f4f4f9;
+        }
+        
+        /* TABS MODE BELAJAR */
+        .mode-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .mode-tab {
+            padding: 10px 20px; font-size: 16px; font-weight: bold; cursor: pointer;
+            border: 2px solid #007bff; border-radius: 5px; background-color: white;
+            color: #007bff; transition: all 0.2s;
+        }
+        .mode-tab.active { background-color: #007bff; color: white; }
+
+        /* LEARNING PANEL */
+        .learning-panel {
+            display: none; width: 800px; background-color: #e3f2fd;
+            border-left: 5px solid #2196f3; padding: 15px 20px; margin-bottom: 15px;
+            border-radius: 4px; box-sizing: border-box; font-size: 16px;
+            line-height: 1.5; color: #0d47a1;
+        }
+
+        canvas {
+            background-color: white; border: 2px solid #333;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px;
+            transition: border-color 0.3s; /* Transisi halus untuk feedback canvas */
+        }
+        
+        /* CANVAS BORDER STATE FEEDBACK */
+        canvas.border-stationary { border-color: #555; }
+        canvas.border-impending { border-color: #ffc107; box-shadow: 0 0 15px rgba(255,193,7,0.4); }
+        canvas.border-moving { border-color: #4caf50; box-shadow: 0 0 15px rgba(76,175,80,0.4); }
+
+        .controls-container {
+            display: flex; flex-direction: column; gap: 20px; width: 800px;
+            background: white; padding: 20px; border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); box-sizing: border-box;
+        }
+        
+        /* HUD (Diperluas untuk Status) */
+        .hud {
+            display: flex; justify-content: space-around; background: #222;
+            color: #ccc; padding: 15px; border-radius: 5px;
+            font-family: monospace; font-size: 14px;
+        }
+        .hud div { text-align: center; }
+        .hud span {
+            display: block; font-size: 18px; font-weight: bold;
+            color: #fff; margin-top: 5px; transition: color 0.2s;
+        }
+        
+        /* STATE COLORS DI HUD */
+        #hud-status.color-stationary { color: #aaa; }
+        #hud-status.color-impending { color: #ffeb3b; } /* Kuning */
+        #hud-status.color-moving { color: #4caf50; } /* Hijau */
+
+        .buttons { display: flex; gap: 15px; justify-content: center; }
+        button {
+            padding: 10px 20px; font-size: 16px; font-weight: bold; cursor: pointer;
+            border: none; border-radius: 5px; color: white;
+        }
+        button#startBtn { background-color: #007bff; }
+        button#releaseBtn { background-color: #ff9800; }
+        button#resetBtn { background-color: #6c757d; }
+        
+        .sliders {
+            display: flex; justify-content: space-between; gap: 20px;
+            border-top: 2px dashed #eee; padding-top: 20px;
+        }
+        .slider-group { display: flex; flex-direction: column; flex: 1; gap: 8px; }
+        .slider-group label { font-weight: bold; font-size: 14px; color: #333; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        input[type="range"]:disabled { opacity: 0.4; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div class="mode-tabs">
+        <div class="mode-tab active" id="tabEksplorasi">Mode Eksplorasi</div>
+        <div class="mode-tab" id="tabBelajar">Mode Belajar</div>
+    </div>
+
+    <div class="learning-panel" id="learningPanel">
+        <div id="learningText">
+            <strong>Tugas:</strong> Klik Start. Kenapa benda tidak bergerak padahal ada gaya dorong sebesar 20 N?<br>
+            <em>Coba naikkan slider Gaya (F) perlahan-lahan untuk mencari tahu.</em>
+        </div>
+    </div>
+
+    <canvas id="simCanvas" class="border-stationary" width="800" height="250"></canvas>
+
+    <div class="controls-container">
+        <div class="hud">
+            <div>Kondisi Sistem <span id="hud-status" class="color-stationary">STATIONARY</span></div>
+            <div>Percepatan (a) <span id="hud-a">0.00 m/s²</span></div>
+            <div>Kecepatan (v) <span id="hud-v">0.00 m/s</span></div>
+            <div>Energi Kinetik (Ek) <span id="hud-ek">0.00 J</span></div>
+        </div>
+
+        <div class="buttons">
+            <button id="startBtn">Start (Dorong)</button>
+            <button id="releaseBtn">Lepas Gaya</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+
+        <div class="sliders">
+            <div class="slider-group">
+                <label>Gaya (F): <span id="f-val">60</span> N</label>
+                <input type="range" id="f-slider" min="0" max="150" value="60">
+            </div>
+            <div class="slider-group">
+                <label>Massa (m): <span id="m-val">10</span> kg</label>
+                <input type="range" id="m-slider" min="1" max="50" value="10">
+            </div>
+            <div class="slider-group">
+                <label>Gesekan (μ): <span id="mu-val">0.30</span></label>
+                <input type="range" id="mu-slider" min="0" max="1" step="0.01" value="0.30">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // A. PURE PHYSICS ENGINE (TIDAK DIUBAH SAMA SEKALI)
+        // ==========================================
+        function calculate_physics(m, F, mu, v, x, dt = 0.016) {
+            if (m <= 0) throw new Error("Massa harus lebih besar dari 0");
+            const g = 9.8;
+            const F_friction_max = mu * m * g;
+            
+            let F_friction = 0;
+            if (Math.abs(v) > 0.001) {
+                F_friction = -F_friction_max * (v > 0 ? 1 : -1);
+            } else {
+                F_friction = -F_friction_max * (F > 0 ? 1 : -1);
+            }
+
+            let F_net = 0, a = 0;
+            if (Math.abs(F) <= F_friction_max && Math.abs(v) <= 0.01) {
+                F_friction = -F; 
+                F_net = 0.0;
+                a = 0.0;
+                v = 0.0;
+            } else {
+                F_net = F + F_friction;
+                a = F_net / m;
+                let v_next = v + a * dt;
+                
+                if (F === 0 && (v * v_next) <= 0) {
+                    v = 0.0;
+                    a = 0.0;
+                } else {
+                    v = v_next;
+                }
+            }
+
+            if (Math.abs(v) < 1e-5) v = 0.0;
+            x = x + v * dt;
+            let Ek = 0.5 * m * (v ** 2);
+            
+            return { F_net, F_friction, a, v, x, Ek };
+        }
+
+        // ==========================================
+        // B. STATE AWARENESS LAYER (BARU)
+        // ==========================================
+        function getSystemState(m, F, mu, v) {
+            const g = 9.8;
+            const f_max = mu * m * g;
+            
+            // Menggunakan toleransi kecil 0.001 agar tidak terjebak floating point
+            if (Math.abs(v) < 0.001) {
+                if (Math.abs(F) >= f_max) {
+                    return "IMPENDING"; // Ambang gerak
+                } else {
+                    return "STATIONARY"; // Diam total
+                }
+            } else {
+                return "MOVING"; // Sedang melaju
+            }
+        }
+
+        // ==========================================
+        // C. STATE VARIABEL & DOM REFERENCES
+        // ==========================================
+        const M_DEFAULT = 10, F_DEFAULT = 60, MU_DEFAULT = 0.3;
+        let m = M_DEFAULT, F = F_DEFAULT, mu = MU_DEFAULT;
+        let v = 0, x = 0; 
+        let currentState = { F_net: 0, F_friction: 0, a: 0, v: 0, x: 0, Ek: 0 };
+        let currentStateLabel = "STATIONARY"; // Penyimpan label kondisi
+
+        const scale = 50, dt = 0.016; 
+        let isRunning = false, animationFrameId = null;
+        let currentMode = 'eksplorasi', learningStep = 0; 
+
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const ballRadius = 25, groundY = canvas.height - 40, startX_pixel = 60; 
+
+        const hudStatus = document.getElementById('hud-status');
+        const hudA = document.getElementById('hud-a');
+        const hudV = document.getElementById('hud-v');
+        const hudEk = document.getElementById('hud-ek');
+        
+        const fSlider = document.getElementById('f-slider');
+        const mSlider = document.getElementById('m-slider');
+        const muSlider = document.getElementById('mu-slider');
+        const fVal = document.getElementById('f-val');
+        const mVal = document.getElementById('m-val');
+        const muVal = document.getElementById('mu-val');
+
+        // ==========================================
+        // D. LOGIKA MODE BELAJAR
+        // ==========================================
+        function setMode(mode) {
+            currentMode = mode;
+            isRunning = false;
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            
+            if (mode === 'eksplorasi') {
+                document.getElementById('tabEksplorasi').classList.add('active');
+                document.getElementById('tabBelajar').classList.remove('active');
+                document.getElementById('learningPanel').style.display = 'none';
+                mSlider.disabled = false; muSlider.disabled = false;
+                m = M_DEFAULT; F = F_DEFAULT; mu = MU_DEFAULT;
+            } else if (mode === 'belajar') {
+                document.getElementById('tabBelajar').classList.add('active');
+                document.getElementById('tabEksplorasi').classList.remove('active');
+                document.getElementById('learningPanel').style.display = 'block';
+                m = 10; F = 20; mu = 0.4;
+                mSlider.disabled = true; muSlider.disabled = true;
+                learningStep = 0;
+                document.getElementById('learningText').innerHTML = "<strong>Tugas:</strong> Klik Start. Kenapa benda tidak bergerak padahal ada gaya dorong sebesar 20 N?<br><em>Coba naikkan slider Gaya (F) perlahan-lahan untuk mencari tahu.</em>";
+            }
+
+            v = 0; x = 0;
+            fSlider.value = F; fVal.textContent = F;
+            mSlider.value = m; mVal.textContent = m;
+            muSlider.value = mu; muVal.textContent = mu.toFixed(2);
+            
+            currentState = { F_net: 0, F_friction: 0, a: 0, v: 0, x: 0, Ek: 0 };
+            updateSingleFrame();
+        }
+
+        document.getElementById('tabEksplorasi').addEventListener('click', () => setMode('eksplorasi'));
+        document.getElementById('tabBelajar').addEventListener('click', () => setMode('belajar'));
+
+        function checkLearningProgress() {
+            if (currentMode !== 'belajar') return;
+            const f_max = mu * m * 9.8; 
+            if (F > f_max && learningStep === 0) {
+                learningStep = 1;
+                document.getElementById('learningText').innerHTML = "<strong>Sekarang benda mulai bergerak!</strong> Gaya dorong sudah mengalahkan gaya gesek maksimal (" + f_max.toFixed(1) + " N).";
+                setTimeout(() => {
+                    if (currentMode === 'belajar' && learningStep === 1) {
+                        document.getElementById('learningText').innerHTML += "<br><br><strong>Kesimpulan:</strong> Benda hanya akan bergerak jika gaya dorong lebih besar dari gaya gesek.";
+                        learningStep = 2;
+                    }
+                }, 2000);
+            }
+        }
+
+        fSlider.addEventListener('input', (e) => { 
+            F = parseFloat(e.target.value); fVal.textContent = F; 
+            checkLearningProgress(); if(!isRunning) updateSingleFrame(); 
+        });
+        mSlider.addEventListener('input', (e) => { m = parseFloat(e.target.value); mVal.textContent = m; if(!isRunning) updateSingleFrame(); });
+        muSlider.addEventListener('input', (e) => { mu = parseFloat(e.target.value); muVal.textContent = mu.toFixed(2); if(!isRunning) updateSingleFrame(); });
+
+        // ==========================================
+        // E. RENDERING & LOOP UTAMA
+        // ==========================================
+        function drawArrow(fromX, fromY, toX, toY, color, label) {
+            const headlen = 10, dx = toX - fromX, dy = toY - fromY, angle = Math.atan2(dy, dx);
+            if (Math.abs(dx) < 1) return; 
+
+            ctx.beginPath(); ctx.moveTo(fromX, fromY); ctx.lineTo(toX, toY);
+            ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.stroke();
+
+            ctx.fillStyle = color; ctx.font = "12px sans-serif"; ctx.fontWeight = "bold";
+            ctx.fillText(label, toX + (dx > 0 ? 5 : -25), toY - 10);
+        }
+
+        function updateHUDAndVisuals(state) {
+            // Update HUD Angka
+            hudA.textContent = state.a.toFixed(2) + " m/s²";
+            hudV.textContent = state.v.toFixed(2) + " m/s";
+            hudEk.textContent = state.Ek.toFixed(2) + " J";
+
+            // INTEGRASI LAYER AWARENESS
+            currentStateLabel = getSystemState(m, F, mu, state.v);
+
+            // Update Teks dan Warna di HUD
+            hudStatus.textContent = currentStateLabel;
+            hudStatus.className = ""; // Reset class
+            canvas.className = ""; // Reset class untuk border canvas
+
+            if (currentStateLabel === "STATIONARY") {
+                hudStatus.classList.add("color-stationary");
+                canvas.classList.add("border-stationary");
+            } else if (currentStateLabel === "IMPENDING") {
+                hudStatus.classList.add("color-impending");
+                canvas.classList.add("border-impending");
+            } else if (currentStateLabel === "MOVING") {
+                hudStatus.classList.add("color-moving");
+                canvas.classList.add("border-moving");
+            }
+        }
+
+        function drawScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY);
+            ctx.strokeStyle = "#555"; ctx.lineWidth = 4; ctx.stroke();
+
+            let screenX = startX_pixel + (x * scale);
+            let isStopped = (currentState.v === 0);
+
+            ctx.beginPath();
+            ctx.arc(screenX, groundY - ballRadius, ballRadius, 0, Math.PI * 2);
+            ctx.fillStyle = isStopped ? "#4caf50" : "#ff5722"; 
+            ctx.fill(); ctx.strokeStyle = "#222"; ctx.lineWidth = 2; ctx.stroke();
+
+            if (F > 0) drawArrow(screenX, groundY - ballRadius, screenX + (F * 0.8), groundY - ballRadius, "#007bff", `F = ${F}N`);
+            if (Math.abs(currentState.F_friction) > 0) {
+                let fricVisual = currentState.F_friction * 0.8; 
+                drawArrow(screenX, groundY - ballRadius + 15, screenX + fricVisual, groundY - ballRadius + 15, "#dc3545", `f = ${Math.abs(currentState.F_friction).toFixed(1)}N`);
+            }
+        }
+
+        function update() {
+            if (!isRunning) return;
+            currentState = calculate_physics(m, F, mu, v, x, dt);
+            v = currentState.v; x = currentState.x;
+            
+            let currentScreenX = startX_pixel + (x * scale);
+            if (currentScreenX > canvas.width + ballRadius) x = 0; 
+
+            updateHUDAndVisuals(currentState);
+            drawScene();
+            animationFrameId = requestAnimationFrame(update);
+        }
+
+        function updateSingleFrame() {
+            currentState = calculate_physics(m, F, mu, v, x, dt);
+            updateHUDAndVisuals(currentState);
+            drawScene();
+        }
+
+        document.getElementById('startBtn').addEventListener('click', () => {
+            if (!isRunning) { isRunning = true; update(); }
+        });
+
+        document.getElementById('releaseBtn').addEventListener('click', () => {
+            F = 0; fSlider.value = 0; fVal.textContent = "0";
+            checkLearningProgress(); if (!isRunning) updateSingleFrame();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => setMode(currentMode));
+
+        updateSingleFrame(); 
+    </script>
+</body>
+</html>

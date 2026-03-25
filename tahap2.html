@@ -1,0 +1,23 @@
+// ==========================================
+// UPDATE PADA FUNGSI update()
+// ==========================================
+function update() {
+    if (!isRunning) return;
+
+    // Kalkulasi fisika
+    let state = calculate_physics(m, F, mu, v, x, dt);
+    
+    v = state.v;
+    x = state.x;
+
+    // FIX: Infinite Space (Luar angkasa tanpa batas)
+    // Jika bola melewati batas kanan layar, kembalikan x ke 0
+    // Kecepatan (v) tetap dipertahankan!
+    let currentScreenX = startX_pixel + (x * scale);
+    if (currentScreenX > canvas.width + ballRadius) {
+        x = 0; // Reset nilai murni fisika
+    }
+
+    drawScene();
+    animationFrameId = requestAnimationFrame(update);
+}
